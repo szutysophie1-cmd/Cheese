@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CHEESE PRANK — JACOB SZUTY</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#000;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      background:linear-gradient(135deg,#000428,#004e92);
+      font-family:"Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
+      overflow:hidden;
+      color:white;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+
+    /* rotation effect */
+    body.rotating {
+      animation: spin 3s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .center {
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      text-align:center;
+      padding:1rem;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 5rem);
+      line-height:0.9;
+      margin:0;
+      text-shadow: 0 6px 30px rgba(0,0,0,0.6);
+      animation: hue 1s infinite linear;
+    }
+    @keyframes hue {
+      0%   { filter: hue-rotate(0deg); }
+      25%  { filter: hue-rotate(90deg); }
+      50%  { filter: hue-rotate(180deg); }
+      75%  { filter: hue-rotate(270deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    #sub {
+      margin-top:1rem;
+      font-size:clamp(0.9rem,2.5vw,1.4rem);
+      opacity:0.95;
+    }
+
+    #startBtn, #stopBtn {
+      margin-top:1.5rem;
+      padding:0.9rem 1.6rem;
+      font-size:1rem;
+      border-radius:12px;
+      border:0;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow:0 8px 22px rgba(0,0,0,0.45);
+    }
+
+    #startBtn { background:linear-gradient(90deg,#fff7a8,#ffd166); color:#111; }
+    #stopBtn  { background:linear-gradient(90deg,#ff6b6b,#c05656); color:white; display:none; }
+
+    footer {
+      position:fixed;
+      bottom:10px;
+      width:100%;
+      text-align:center;
+      color:#ffffff66;
+      font-size:0.85rem;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="center">
+    <h1 id="mainText">CLICK TO START THE PRANK!</h1>
+    <div id="sub">(Click the button below — sound will play on start)</div>
+    <button id="startBtn">START PRANK</button>
+    <button id="stopBtn">GIVE UP — STOP</button>
+  </div>
+
+  <footer>This is a harmless prank — press the red button to stop anytime.</footer>
+
+  <!-- confetti lib -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- goat sound: put goat.mp3 in same repo folder -->
+  <audio id="goat" src="goat.mp3" preload="auto"></audio>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn  = document.getElementById('stopBtn');
+    const mainText = document.getElementById('mainText');
+    const goat     = document.getElementById('goat');
+
+    let started = false;
+    let allowRepeatSound = true; // if true, sound plays again on each click
+
+    function goFullScreen() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }
+
+    function launchConfetti() {
+      confetti({
+        particleCount: 120,
+        spread: 110,
+        origin: { y: 0.6 }
+      });
+    }
+
+    function startPrank() {
+      if (started) return;
+      started = true;
+
+      // fullscreen (user gesture)
+      goFullScreen();
+
+      // update UI
+      mainText.innerHTML = `JACOB SZUTY<br>CHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEESE!!!<br><br>GET PRANKED 🎉`;
+      startBtn.style.display = 'none';
+      stopBtn.style.display  = 'inline-block';
+
+      // start rotation
+      document.body.classList.add('rotating');
+
+      // play goat sound once at start (browsers allow this because it's a user gesture)
+      goat.currentTime = 0;
+      goat.volume = 1.0;
+      goat.play().catch(()=>{ /* may fail on autoplay policies if no gesture - but we used one */ });
+
+      // initial confetti blast
+      launchConfetti();
+
+      // add confetti on any click or keydown
+      document.addEventListener('click', onUserInput);
+      document.addEventListener('keydown', onUserInput);
+    }
+
+    function onUserInput(e) {
+      // avoid counting the START/STOP button clicks as extra confetti blasts twice
+      // but still allow confetti when clicking elsewhere
+      if (e.target === startBtn) return;
+      // confetti
+      launchConfetti();
+
+      // optionally play goat scream each time (comment out if you don't want repeats)
+      if (allowRepeatSound) {
+        goat.currentTime = 0;
+        goat.play().catch(()=>{});
+      }
+    }
+
+    function stopPrank() {
+      // stop rotation & listeners
+      document.body.classList.remove('rotating');
+      document.removeEventListener('click', onUserInput);
+      document.removeEventListener('keydown', onUserInput);
+
+      // change text & UI
+      mainText.textContent = 'OK OK YOU WIN 😅';
+      stopBtn.style.display = 'none';
+      startBtn.style.display = 'inline-block';
+      startBtn.disabled = false;
+      started = false;
+
+      // try exit fullscreen (optional)
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    }
+
+    // Wire buttons
+    startBtn.addEventListener('click', startPrank);
+    stopBtn.addEventListener('click', stopPrank);
+
+    // Small accessibility: space/enter on Start also works
+    startBtn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') startPrank(); });
+
+    // If the goat mp3 is missing, show a small console notice (no nag in UI)
+    goat.addEventListener('error', () => {
+      console.warn('goat.mp3 not found — put goat.mp3 in the same folder as index.html in your repo.');
+    });
+  </script>
+</body>
+</html>
